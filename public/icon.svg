@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">交易账本图标</title>
+  <desc id="desc">红色底的交易账本应用图标，带有折线图和 TA 字样。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#af101a" />
+      <stop offset="100%" stop-color="#d32f2f" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)" />
+  <path d="M48 166c22-8 37-24 51-24 14 0 22 12 39 12 14 0 28-15 70-52" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+  <circle cx="190" cy="102" r="10" fill="#fff" />
+  <path d="M66 62h62c12 0 22 10 22 22v108H88c-12 0-22-10-22-22V62Z" fill="rgba(255,255,255,0.14)" />
+  <text x="82" y="118" fill="#fff" font-family="Manrope, Noto Sans SC, sans-serif" font-size="44" font-weight="800">TA</text>
+</svg>

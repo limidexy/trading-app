@@ -1,0 +1,17 @@
+{
+  "name": "交易账本",
+  "short_name": "交易账本",
+  "description": "专业交易员的复盘、执行和计划管理工具。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f9f9",
+  "theme_color": "#af101a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
