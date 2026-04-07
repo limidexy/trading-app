@@ -111,9 +111,16 @@ async function initDatabase() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login_at TIMESTAMP NULL DEFAULT NULL
       )
     `);
+
+    try {
+      await connection.query('ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP NULL DEFAULT NULL');
+    } catch {
+      // Column already exists.
+    }
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS user_profile (
@@ -254,6 +261,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     const payload = { id: user.id, username: user.username };
+    await pool.execute('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
     res.json({ success: true, token: signToken(payload), user: payload });
   } catch (error) {
     console.error('Login error:', error);
@@ -276,8 +284,14 @@ app.get('/api/me', (req, res) => {
 
 app.get('/api/profile', requireAuth, async (req: AuthedRequest, res) => {
   try {
-    const [rows] = await pool.execute<any[]>('SELECT * FROM user_profile WHERE user_id = ?', [req.user!.id]);
-    const profile = rows[0] || { username: req.user!.username, avatar_url: '' };
+    const [rows] = await pool.execute<any[]>(
+      `SELECT p.*, u.created_at, u.last_login_at
+       FROM user_profile p
+       JOIN users u ON u.id = p.user_id
+       WHERE p.user_id = ?`,
+      [req.user!.id],
+    );
+    const profile = rows[0] || { username: req.user!.username, avatar_url: '', created_at: null, last_login_at: null };
     if (profile.avatar_url) {
       profile.avatar_url = getProxyUrl(profile.avatar_url);
     }
@@ -285,6 +299,41 @@ app.get('/api/profile', requireAuth, async (req: AuthedRequest, res) => {
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({ success: false, error: '获取个人资料失败' });
+  }
+});
+
+app.post('/api/profile/password', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ success: false, error: '请完整填写当前密码和新密码' });
+      return;
+    }
+
+    if (String(newPassword).length < 6) {
+      res.status(400).json({ success: false, error: '新密码至少需要 6 位' });
+      return;
+    }
+
+    const [rows] = await pool.execute<any[]>('SELECT password FROM users WHERE id = ?', [req.user!.id]);
+    const user = rows[0];
+    if (!user) {
+      res.status(404).json({ success: false, error: '用户不存在' });
+      return;
+    }
+
+    const matched = await bcrypt.compare(currentPassword, user.password);
+    if (!matched) {
+      res.status(400).json({ success: false, error: '当前密码不正确' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.execute('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.user!.id]);
+    res.json({ success: true, message: '密码修改成功' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ success: false, error: '修改密码失败，请稍后重试' });
   }
 });
 

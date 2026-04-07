@@ -9,6 +9,8 @@ interface User {
 interface UserProfile {
   username: string;
   avatar_url: string;
+  created_at?: string | null;
+  last_login_at?: string | null;
 }
 
 interface UserContextType {
@@ -24,6 +26,8 @@ interface UserContextType {
 const DEFAULT_PROFILE: UserProfile = {
   username: '交易员',
   avatar_url: '',
+  created_at: null,
+  last_login_at: null,
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -41,6 +45,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setProfile({
           username: result.profile?.username || DEFAULT_PROFILE.username,
           avatar_url: result.profile?.avatar_url || '',
+          created_at: result.profile?.created_at || null,
+          last_login_at: result.profile?.last_login_at || null,
         });
       }
     } catch (error) {
