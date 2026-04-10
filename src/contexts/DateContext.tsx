@@ -8,9 +8,15 @@ interface DateContextType {
 const DateContext = createContext<DateContextType | undefined>(undefined);
 
 export const DateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [selectedDate, setSelectedDate] = useState(
-    new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai' }).format(new Date()),
-  );
+  const getCurrentDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  const [selectedDate, setSelectedDate] = useState(getCurrentDate());
 
   return (
     <DateContext.Provider value={{ selectedDate, setSelectedDate }}>

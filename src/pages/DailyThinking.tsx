@@ -260,7 +260,7 @@ function MiniBarChart({
               <div className="flex h-32 items-end">
                 <div className={`w-7 rounded-t-2xl ${colorClass}`} style={{ height }} />
               </div>
-              <div className="text-[11px] font-bold tracking-[0.15em] text-on-surface-variant/70">
+              <div className="text-[10px] font-semibold tabular-nums tracking-[0.06em] text-on-surface-variant/70">
                 {day.date.slice(5).replace('-', '/')}
               </div>
             </button>
@@ -310,7 +310,7 @@ function ProfitBarChart({ days, onSelectDay }: { days: DashboardDay[]; onSelectD
                 </div>
               </div>
 
-              <div className="text-[11px] font-bold tracking-[0.15em] text-on-surface-variant/70">
+              <div className="text-[10px] font-semibold tabular-nums tracking-[0.06em] text-on-surface-variant/70">
                 {day.date.slice(5).replace('-', '/')}
               </div>
             </button>

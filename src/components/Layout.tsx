@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Brain,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Lightbulb,
   LogOut,
@@ -14,12 +16,29 @@ import { cn } from '@/lib/utils';
 import { useDate } from '@/contexts/DateContext';
 import { useUser } from '@/contexts/UserContext';
 
+function shiftDate(dateString: string, amount: number) {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + amount);
+
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, '0');
+  const nextDay = String(date.getDate()).padStart(2, '0');
+
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { selectedDate, setSelectedDate } = useDate();
   const { profile, logout } = useUser();
-  const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const dateInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [displayDate, setDisplayDate] = React.useState(selectedDate);
+  const [dateDirection, setDateDirection] = React.useState<1 | -1>(1);
+  const [datePhase, setDatePhase] = React.useState<'idle' | 'enter' | 'exit'>('idle');
+  const animationTimeoutRef = React.useRef<number | null>(null);
+  const animationRafRef = React.useRef<number | null>(null);
 
   const navItems = [
     { path: '/operation', label: '今日操作', icon: Wallet },
@@ -33,49 +52,150 @@ export default function Layout() {
     navigate('/login', { replace: true });
   };
 
+  const handlePrevDate = () => {
+    setDateDirection(-1);
+    setSelectedDate(shiftDate(selectedDate, -1));
+  };
+
+  const handleNextDate = () => {
+    setDateDirection(1);
+    setSelectedDate(shiftDate(selectedDate, 1));
+  };
+
   const openDatePicker = () => {
     if (!dateInputRef.current) return;
     if (typeof dateInputRef.current.showPicker === 'function') {
-      dateInputRef.current.showPicker();
-    } else {
-      dateInputRef.current.focus();
-      dateInputRef.current.click();
+      try {
+        dateInputRef.current.showPicker();
+        return;
+      } catch {
+        // Fall back to focus/click below.
+      }
     }
+    dateInputRef.current.focus();
+    dateInputRef.current.click();
   };
+
+  React.useEffect(() => {
+    if (selectedDate === displayDate) return;
+
+    if (animationTimeoutRef.current !== null) {
+      window.clearTimeout(animationTimeoutRef.current);
+    }
+    if (animationRafRef.current !== null) {
+      window.cancelAnimationFrame(animationRafRef.current);
+    }
+
+    setDatePhase('exit');
+
+    animationTimeoutRef.current = window.setTimeout(() => {
+      setDisplayDate(selectedDate);
+      setDatePhase('enter');
+
+      animationRafRef.current = window.requestAnimationFrame(() => {
+        setDatePhase('idle');
+        animationRafRef.current = null;
+      });
+    }, 160);
+
+    return () => {
+      if (animationTimeoutRef.current !== null) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+      if (animationRafRef.current !== null) {
+        window.cancelAnimationFrame(animationRafRef.current);
+      }
+    };
+  }, [displayDate, selectedDate]);
+
+  React.useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current !== null) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+      if (animationRafRef.current !== null) {
+        window.cancelAnimationFrame(animationRafRef.current);
+      }
+    };
+  }, []);
+
+  const dateMotionClass =
+    datePhase === 'idle'
+      ? 'translate-x-0 scale-100 opacity-100 blur-0'
+      : datePhase === 'enter'
+        ? dateDirection > 0
+          ? 'translate-x-6 scale-[0.98] opacity-0 blur-[6px]'
+          : '-translate-x-6 scale-[0.98] opacity-0 blur-[6px]'
+        : dateDirection > 0
+          ? '-translate-x-6 scale-[0.98] opacity-0 blur-[6px]'
+          : 'translate-x-6 scale-[0.98] opacity-0 blur-[6px]';
 
   return (
     <div className="min-h-screen bg-surface pb-28 md:pb-0 md:pl-24">
       <header className="sticky top-0 z-40 border-b border-outline-variant/10 bg-surface/95 backdrop-blur-md">
-        <div className="mx-auto flex h-20 max-w-5xl items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex min-h-24 max-w-5xl items-center justify-between gap-3 px-4 py-3 md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              onClick={openDatePicker}
-              className="flex h-12 min-w-12 items-center justify-center rounded-2xl bg-surface-container-lowest text-primary shadow-sm transition-all hover:bg-surface-container"
+              onClick={handlePrevDate}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm transition-all hover:bg-surface-container active:scale-95"
+              aria-label="切换到前一天"
             >
-              <CalendarDays className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
+
+            <div
+              className="relative min-w-[170px] px-2 py-1 transition-colors hover:text-primary"
+              onClick={(event) => {
+                if (event.target instanceof HTMLInputElement) return;
+                openDatePicker();
+              }}
+            >
+              <div className="pointer-events-none flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 text-on-surface-variant">
+                  <CalendarDays className="h-4 w-4" />
+                </div>
+
+                <div className="min-w-0 overflow-hidden">
+                  <div
+                    className={cn(
+                      'text-[clamp(1.25rem,2.4vw,1.75rem)] font-semibold tracking-tight text-on-surface transition-all duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform',
+                      dateMotionClass,
+                    )}
+                  >
+                    {displayDate.replace(/-/g, '/')}
+                  </div>
+                  <div className="mt-0.5 text-[11px] font-medium text-on-surface-variant/70">点击选择日期</div>
+                </div>
+              </div>
+
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                onClick={(event) => {
+                  if (typeof dateInputRef.current?.showPicker === 'function') {
+                    event.preventDefault();
+                    openDatePicker();
+                  }
+                }}
+                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                aria-label="选择日期"
+              />
+            </div>
 
             <button
               type="button"
-              onClick={openDatePicker}
-              className="rounded-2xl bg-surface-container-lowest px-4 py-3 text-left shadow-sm transition-all hover:bg-surface-container"
+              onClick={handleNextDate}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm transition-all hover:bg-surface-container active:scale-95"
+              aria-label="切换到后一天"
             >
-              <div className="text-2xl font-bold tracking-tight text-on-surface">{selectedDate.replace(/-/g, '/')}</div>
-              <div className="text-xs text-on-surface-variant">点击切换日期</div>
+              <ChevronRight className="h-5 w-5" />
             </button>
-
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-              className="sr-only"
-              aria-label="选择日期"
-            />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={handleLogout}
               className="flex h-11 w-11 items-center justify-center rounded-2xl text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
@@ -96,7 +216,12 @@ export default function Layout() {
               title="个人设置"
             >
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="头像" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                <img
+                  src={profile.avatar_url}
+                  alt="头像"
+                  className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
                 <UserIcon className="h-5 w-5 text-on-surface-variant/40" />
               )}
@@ -115,7 +240,9 @@ export default function Layout() {
               className={({ isActive }) =>
                 cn(
                   'flex min-h-16 w-16 flex-col items-center justify-center rounded-2xl text-xs font-bold transition-all',
-                  isActive ? 'bg-primary text-on-primary shadow-lg' : 'text-on-surface-variant hover:bg-surface-container hover:text-primary',
+                  isActive
+                    ? 'bg-primary text-on-primary shadow-lg'
+                    : 'text-on-surface-variant hover:bg-surface-container hover:text-primary',
                 )
               }
               title={item.label}
