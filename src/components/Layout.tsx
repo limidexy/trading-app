@@ -133,8 +133,8 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-surface pb-28 md:pb-0 md:pl-24">
       <header className="sticky top-0 z-40 border-b border-outline-variant/10 bg-surface/95 backdrop-blur-md">
-        <div className="mx-auto flex min-h-24 max-w-5xl items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="mx-auto flex min-h-24 max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6 md:flex-nowrap">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
               onClick={handlePrevDate}
@@ -145,27 +145,29 @@ export default function Layout() {
             </button>
 
             <div
-              className="relative min-w-[170px] px-2 py-1 transition-colors hover:text-primary"
+              className="relative min-w-[170px] px-2 py-1 transition-colors hover:text-primary max-[640px]:min-w-[130px]"
               onClick={(event) => {
                 if (event.target instanceof HTMLInputElement) return;
                 openDatePicker();
               }}
             >
               <div className="pointer-events-none flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 text-on-surface-variant">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 text-on-surface-variant max-[640px]:h-8 max-[640px]:w-8">
                   <CalendarDays className="h-4 w-4" />
                 </div>
 
                 <div className="min-w-0 overflow-hidden">
                   <div
                     className={cn(
-                      'text-[clamp(1.25rem,2.4vw,1.75rem)] font-semibold tracking-tight text-on-surface transition-all duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform',
+                      'text-[clamp(1.25rem,2.4vw,1.75rem)] font-semibold tracking-tight text-on-surface transition-all duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform max-[640px]:text-[1.05rem]',
                       dateMotionClass,
                     )}
                   >
                     {displayDate.replace(/-/g, '/')}
                   </div>
-                  <div className="mt-0.5 text-[11px] font-medium text-on-surface-variant/70">点击选择日期</div>
+                  <div className="mt-0.5 text-[11px] font-medium text-on-surface-variant/70 max-[640px]:text-[10px]">
+                    点击选择日期
+                  </div>
                 </div>
               </div>
 
