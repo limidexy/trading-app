@@ -387,16 +387,18 @@ export default function DailyThinking() {
         days.map(async (date) => {
           const previousDate = dayjs(date).subtract(1, 'day').format('YYYY-MM-DD');
 
-          const [operationRes, reflectionRes, planRes] = await Promise.all([
+          const [operationRes, reflectionRes, planRes, pnlRes] = await Promise.all([
             apiFetch(`/api/today-operation?date=${date}`),
             apiFetch(`/api/today-reflection?date=${date}`),
             apiFetch(`/api/tomorrow-plan?date=${previousDate}`),
+            apiFetch(`/api/daily-pnl?date=${date}`),
           ]);
 
-          const [operationJson, reflectionJson, planJson] = await Promise.all([
+          const [operationJson, reflectionJson, planJson, pnlJson] = await Promise.all([
             operationRes.json(),
             reflectionRes.json(),
             planRes.json(),
+            pnlRes.json(),
           ]);
 
           const operations = Array.isArray(operationJson?.data) ? operationJson.data : [];
@@ -404,7 +406,7 @@ export default function DailyThinking() {
           const plans = Array.isArray(planJson?.data) ? planJson.data : [];
 
           const operationCount = operations.length;
-          const profitLossTotal = operations.reduce((sum: number, item: any) => sum + Number(item.profit_loss || 0), 0);
+          const profitLossTotal = Number(pnlJson?.data?.pnl ?? 0);
           const uploadCount =
             operations.filter((item: any) => item.screenshot_url).length + (reflection?.image_url ? 1 : 0);
           const completedPlans = plans.filter((item: any) => item.is_completed).length;
@@ -448,6 +450,7 @@ export default function DailyThinking() {
       setDashboardLoading(false);
     }
   };
+
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -689,26 +692,26 @@ export default function DailyThinking() {
         ) : (
             <div className="space-y-6">
               <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => exportRange('week')}
-                disabled={isExporting !== null}
-                className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-primary px-5 py-3 font-bold text-on-primary shadow-md transition-all hover:opacity-90 disabled:opacity-60"
+                <button
+                  type="button"
+                  onClick={() => exportRange('week')}
+                  disabled={isExporting !== null}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-primary px-5 py-3 font-bold text-on-primary shadow-md transition-all hover:opacity-90 disabled:opacity-60"
               >
                 {isExporting === 'week' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 导出本周复盘
-              </button>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => exportRange('month')}
-                disabled={isExporting !== null}
-                className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-surface px-5 py-3 font-bold text-on-surface shadow-sm ring-1 ring-outline-variant/20 transition-all hover:bg-surface-container disabled:opacity-60"
-              >
-                {isExporting === 'month' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                导出本月复盘
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => exportRange('month')}
+                  disabled={isExporting !== null}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-surface px-5 py-3 font-bold text-on-surface shadow-sm ring-1 ring-outline-variant/20 transition-all hover:bg-surface-container disabled:opacity-60"
+                >
+                  {isExporting === 'month' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  导出本月复盘
+                </button>
+              </div>
 
             <div className="rounded-3xl border border-outline-variant/15 bg-surface p-5">
               <div className="mb-3 flex items-center gap-2">

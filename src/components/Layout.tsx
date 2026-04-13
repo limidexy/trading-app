@@ -145,21 +145,21 @@ export default function Layout() {
             </button>
 
             <div
-              className="relative min-w-[170px] px-2 py-1 transition-colors hover:text-primary max-[640px]:min-w-[130px]"
+              className="relative min-w-[170px] px-2 py-1 transition-colors hover:text-primary max-[640px]:min-w-[140px]"
               onClick={(event) => {
                 if (event.target instanceof HTMLInputElement) return;
                 openDatePicker();
               }}
             >
-              <div className="pointer-events-none flex items-center gap-2">
+              <div className="pointer-events-none flex items-center gap-2 max-[640px]:gap-1">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 text-on-surface-variant max-[640px]:h-8 max-[640px]:w-8">
                   <CalendarDays className="h-4 w-4" />
                 </div>
 
-                <div className="min-w-0 overflow-hidden">
+                <div className="min-w-0 overflow-hidden max-[640px]:overflow-visible">
                   <div
                     className={cn(
-                      'text-[clamp(1.25rem,2.4vw,1.75rem)] font-semibold tracking-tight text-on-surface transition-all duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform max-[640px]:text-[1.05rem]',
+                      'text-[clamp(1.25rem,2.4vw,1.75rem)] font-semibold tracking-tight text-on-surface transition-all duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform max-[640px]:text-[0.95rem] max-[640px]:tracking-tight max-[640px]:leading-[1.1] max-[640px]:whitespace-nowrap',
                       dateMotionClass,
                     )}
                   >

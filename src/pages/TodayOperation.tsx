@@ -40,6 +40,10 @@ export default function TodayOperation() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [pnlInput, setPnlInput] = useState('');
+  const [isPnlSaving, setIsPnlSaving] = useState(false);
+  const [isPnlLoading, setIsPnlLoading] = useState(false);
+  const [pnlDirty, setPnlDirty] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftState, setDraftState] = useState<DraftState>('idle');
@@ -58,6 +62,7 @@ export default function TodayOperation() {
 
   useEffect(() => {
     void fetchData();
+    void fetchDailyPnl(selectedDate);
   }, [selectedDate]);
 
   useEffect(() => {
@@ -108,6 +113,48 @@ export default function TodayOperation() {
       toast.error('获取今日操作失败，请检查网络后重试');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDailyPnl = async (date: string) => {
+    setIsPnlLoading(true);
+    try {
+      const response = await apiFetch(`/api/daily-pnl?date=${date}`);
+      const result = await response.json();
+      if (!pnlDirty) {
+        const value = result?.data?.pnl;
+        setPnlInput(value === null || value === undefined ? '' : String(value));
+      }
+    } catch (error) {
+      console.error('Daily pnl fetch error:', error);
+    } finally {
+      setIsPnlLoading(false);
+    }
+  };
+
+  const handleSavePnl = async () => {
+    setIsPnlSaving(true);
+    try {
+      const payload = {
+        date: selectedDate,
+        pnl: pnlInput.trim() === '' ? null : Number(pnlInput),
+      };
+      const response = await apiFetch('/api/daily-pnl', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        toast.error(result?.error || '保存每日盈亏失败');
+        return;
+      }
+      setPnlDirty(false);
+      toast.success('每日盈亏已保存');
+    } catch (error) {
+      console.error('Daily pnl save error:', error);
+      toast.error('保存每日盈亏失败');
+    } finally {
+      setIsPnlSaving(false);
     }
   };
 
@@ -286,6 +333,30 @@ export default function TodayOperation() {
         </div>
 
         <div className="flex w-full flex-col gap-3 md:w-auto md:min-w-[360px]">
+          <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest px-4 py-3">
+            <div className="mb-2 text-xs font-bold text-on-surface-variant">每日盈亏（手动输入）</div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <input
+                value={pnlInput}
+                onChange={(event) => {
+                  setPnlInput(event.target.value);
+                  setPnlDirty(true);
+                }}
+                onBlur={() => setPnlDirty(true)}
+                placeholder="例如 1.25 或 -0.80"
+                className="h-10 w-full flex-1 rounded-2xl border border-outline-variant/15 bg-surface px-3 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                type="button"
+                onClick={handleSavePnl}
+                disabled={isPnlSaving || isPnlLoading}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-on-surface px-4 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
+              >
+                {isPnlSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isPnlSaving ? '保存中...' : '保存盈亏'}
+              </button>
+            </div>
+          </div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/50" />
             <input

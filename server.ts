@@ -177,6 +177,18 @@ async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS daily_pnl (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        date DATE NOT NULL,
+        pnl DECIMAL(10, 2) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_user_date (user_id, date)
+      )
+    `);
   } finally {
     connection.release();
   }
@@ -481,6 +493,53 @@ app.get('/api/today-operation', requireAuth, async (req: AuthedRequest, res) => 
   } catch (error) {
     console.error('Today operation fetch error:', error);
     res.status(500).json({ success: false, error: '获取今日操作失败' });
+  }
+});
+
+app.get('/api/daily-pnl', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const date = req.query.date;
+    const [rows] = await pool.execute<any[]>(
+      'SELECT pnl FROM daily_pnl WHERE date = ? AND user_id = ? LIMIT 1',
+      [date, req.user!.id],
+    );
+    res.json({ success: true, data: rows[0] || null });
+  } catch (error) {
+    console.error('Daily pnl fetch error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch daily pnl' });
+  }
+});
+
+app.post('/api/daily-pnl', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { date, pnl } = req.body;
+    if (!date) {
+      res.status(400).json({ success: false, error: 'Missing date' });
+      return;
+    }
+
+    if (pnl === null || pnl === undefined || pnl === '') {
+      await pool.execute('DELETE FROM daily_pnl WHERE date = ? AND user_id = ?', [date, req.user!.id]);
+      res.json({ success: true });
+      return;
+    }
+
+    const numericPnl = Number(pnl);
+    if (Number.isNaN(numericPnl)) {
+      res.status(400).json({ success: false, error: 'Invalid pnl' });
+      return;
+    }
+
+    await pool.execute(
+      `INSERT INTO daily_pnl (user_id, date, pnl)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE pnl = VALUES(pnl)`,
+      [req.user!.id, date, numericPnl],
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Daily pnl save error:', error);
+    res.status(500).json({ success: false, error: 'Failed to save daily pnl' });
   }
 });
 

@@ -40,3 +40,14 @@ CREATE TABLE IF NOT EXISTS today_operations (
     screenshot_url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Table for Daily PnL
+CREATE TABLE IF NOT EXISTS daily_pnl (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    date DATE NOT NULL,
+    pnl DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_user_date (user_id, date)
+);
